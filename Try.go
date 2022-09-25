@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 func main() {
 	ch:= make(chan packet)
+	now := time.Now()
+	fmt.Println(now)
 
 	go client(ch);
 	go server(ch);
@@ -18,10 +21,11 @@ func main() {
 
 func client(ch chan packet){
 	//step 1: the client want to make a connection. Sending first packet
-	firstPacket := packet{rand.Intn(1000), 0, 1}
+	firstPacket := packet{rand.Intn(1000), 0, 1, ""}
 	ch <- firstPacket
 
 	//step 2: the client recieves the syn-ack packet
+	
 	recievedSynAckPacket := <- ch
 	toSendAckPacket := recievedSynAckPacket
 
@@ -30,6 +34,7 @@ func client(ch chan packet){
 		//step 3: the client sends back ack-packet to the server
 		toSendAckPacket.ackNumber = recievedSynAckPacket.seqNumber +1; 
 		toSendAckPacket.seqNumber = recievedSynAckPacket.ackNumber; 
+		toSendAckPacket.data = "Hello I'm data"
 		ch <- toSendAckPacket
 	}
 }
@@ -52,7 +57,8 @@ func client(ch chan packet){
 	//checks if the sequence number is equal to the ackNumber it sent with the Syn-Ack packet
 	if(recievedAckPacket.seqNumber == recievedSynPacket.seqNumber + 1){
 		recievedAckPacket.syn = 0;
-		fmt.Println("Connection established you can now send data", recievedAckPacket)
+		fmt.Println("Connection established", recievedAckPacket)
+		fmt.Println("data recieved was", recievedAckPacket.data)
 		
 	} else {
 		fmt.Println("Something went wrong the recieved seq is not correct")
@@ -64,4 +70,5 @@ type packet struct{
 	seqNumber int //sequence number
 	ackNumber int //acknowledgement number
 	syn int		//syncronization
+	data string //the data to send
 }
