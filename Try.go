@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 )
 
 func main() {
-	fmt.Println("hej");
 	ch:= make(chan packet)
 
 	go client(ch);
@@ -18,7 +18,7 @@ func main() {
 
 func client(ch chan packet){
 	//step 1: the client want to make a connection. Sending first packet
-	firstPacket := packet{9001, 0, 1}
+	firstPacket := packet{rand.Intn(1000), 0, 1}
 	ch <- firstPacket
 
 	//step 2: the client recieves the syn-ack packet
@@ -43,15 +43,17 @@ func client(ch chan packet){
 
 	//step 2: the sever sends back syn-ack packet
 	toSendSynAckPacket.ackNumber = recievedSynPacket.seqNumber +1;
-	toSendSynAckPacket.seqNumber = 5001;
+	toSendSynAckPacket.seqNumber = rand.Intn(1000);
 	ch <- toSendSynAckPacket
 	
-		//step 3: the server recieves ack-packet
+	//step 3: the server recieves ack-packet
 	recievedAckPacket := <- ch
 
 	//checks if the sequence number is equal to the ackNumber it sent with the Syn-Ack packet
 	if(recievedAckPacket.seqNumber == recievedSynPacket.seqNumber + 1){
-		fmt.Println("YESSSSSS")
+		recievedAckPacket.syn = 0;
+		fmt.Println("Connection established you can now send data", recievedAckPacket)
+		
 	} else {
 		fmt.Println("Something went wrong the recieved seq is not correct")
 	}
