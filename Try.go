@@ -8,6 +8,7 @@ import (
 
 func main() {
 	ch:= make(chan packet)
+	//ch:= make(chan packet, 2) make the channel af buffered channel, to time the number of elements in the channel????
 	now := time.Now()
 	fmt.Println(now)
 
@@ -39,9 +40,7 @@ func client(ch chan packet){
 	}
 }
 
-
 	func server(ch chan packet){
-
 	//step 1: the server recieves the first packet.
 	recievedSynPacket := <- ch
 	toSendSynAckPacket := recievedSynPacket;
