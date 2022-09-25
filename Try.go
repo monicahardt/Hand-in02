@@ -3,30 +3,31 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 )
 
 func main() {
 	ch:= make(chan packet)
-	//ch:= make(chan packet, 2) make the channel af buffered channel, to time the number of elements in the channel????
-	now := time.Now()
+	bufferedDataCh:= make(chan dataPacket,5)
+	
+	now := time.Now() //do we need time????
 	fmt.Println(now)
 
-	go client(ch);
-	go server(ch);
+	go client(ch, bufferedDataCh);
+	go server(ch, bufferedDataCh);
 
 	for {
 
 	};
 } 
 
-func client(ch chan packet){
+func client(ch chan packet, dataCh chan dataPacket){
 	//step 1: the client want to make a connection. Sending first packet
-	firstPacket := packet{rand.Intn(1000), 0, 1, ""}
+	firstPacket := packet{rand.Intn(1000), 0, 1}
 	ch <- firstPacket
 
 	//step 2: the client recieves the syn-ack packet
-	
 	recievedSynAckPacket := <- ch
 	toSendAckPacket := recievedSynAckPacket
 
@@ -35,12 +36,19 @@ func client(ch chan packet){
 		//step 3: the client sends back ack-packet to the server
 		toSendAckPacket.ackNumber = recievedSynAckPacket.seqNumber +1; 
 		toSendAckPacket.seqNumber = recievedSynAckPacket.ackNumber; 
-		toSendAckPacket.data = "Hello I'm data"
 		ch <- toSendAckPacket
+
+		firstDataPacket := dataPacket{"I am a data string",0}
+		secondDataPacket := dataPacket{"I am a data string1",1}
+		thirdDataPacket := dataPacket{"I am a data string2",2}
+		dataCh <- firstDataPacket
+		dataCh <- thirdDataPacket
+		dataCh <- secondDataPacket
+		//fmt.Println(len(dataCh)) //here the length is 3
 	}
 }
 
-	func server(ch chan packet){
+	func server(ch chan packet, dataCh chan dataPacket){
 	//step 1: the server recieves the first packet.
 	recievedSynPacket := <- ch
 	toSendSynAckPacket := recievedSynPacket;
@@ -56,8 +64,25 @@ func client(ch chan packet){
 	//checks if the sequence number is equal to the ackNumber it sent with the Syn-Ack packet
 	if(recievedAckPacket.seqNumber == recievedSynPacket.seqNumber + 1){
 		recievedAckPacket.syn = 0;
-		fmt.Println("Connection established", recievedAckPacket)
-		fmt.Println("data recieved was", recievedAckPacket.data)
+		fmt.Println("Connection established")
+		
+		dataArray := []dataPacket{}
+
+		
+		for i:=0; i < 3; i++{
+			recievedData := <- dataCh
+			fmt.Println("added to the dataArray the string: ", recievedData.data)
+			dataArray = append(dataArray, recievedData)
+		}
+
+
+		sort.Slice(dataArray, func(i, j int) bool {
+			return dataArray[i].metaData < dataArray[j].metaData
+		})
+
+		for s := range dataArray{
+			fmt.Println(dataArray[s].data)
+		}
 		
 	} else {
 		fmt.Println("Something went wrong the recieved seq is not correct")
@@ -69,5 +94,18 @@ type packet struct{
 	seqNumber int //sequence number
 	ackNumber int //acknowledgement number
 	syn int		//syncronization
-	data string //the data to send
+	//data string //the data to send
+	//dataNumber int //if more than one packet is sent, or they are in the wrong order
 }
+
+
+//the data we send after making the connection
+type dataPacket struct{
+	data string //the data to send
+	metaData int //if more than one packet is sent, or they are in the wrong order
+}
+
+
+
+
+
